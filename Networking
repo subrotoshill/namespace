@@ -1,0 +1,87 @@
+# Create Name Space 
+sudo ip netns add green
+sudo ip netns add red
+# To check created namespace 
+sudo ip netns list
+# Create Bridge 
+sudo ip link add bro0 type bridge 
+# Let's this bridge up/power on
+sudo ip link set bro0 up
+# Set ip address to this bridge 
+sudo ip addr add 192.168.0.1/16 dev bro0
+# To check created bridge and ip address
+sudo ip link list
+sudo ip add
+# Create virutal cable 
+sudo ip add veth_green_ns type veth peer name veth_green_br
+sudo ip add veth_red_ns type veth peer name veth_red_br
+# To check virtual cable list
+sudo ip link list 
+# Assign this virtual cable to namespace 
+sudo ip link set dev veth_green_ns netns green
+sudo ip link set dev veth_red_ns netns red
+# Assign this virtual cable to bridge/virtual switch
+sudo ip link set dev veth_green_br master bro0
+sudo ip link set dev veth_red_br master bro0
+# Let's virtual cable turn up Namespace side
+sudo ip netns exec green ip link set veth_green_ns up
+sudo ip netns exec red ip link set veth_red_ns up
+# Let's virtual cable turn up Bridge side
+sudo ip link set veth_green_br up
+sudo ip link set veth_red_br up
+# To check all side interface up or down 
+sudo ip link list
+# To setup ip address to the Namespace green
+sudo ip netns exec green bash
+sudo ip link set lo up # Loopback Interface 
+sudo ip addr add 192.168.0.2/16 dev veth_green_ns
+# To check 
+sudo ip add # inside the green namespace using bash
+exit # exit from green namespace 
+# To setup ip address to the Namespace red
+sudo ip netns exec red bash
+sudo ip link set lo up # Loopback Interface 
+sudo ip addr add 192.168.0.3/16 dev veth_red_ns
+# To check 
+sudo ip add # inside the green namespace using bash
+exit # exit from green namespace 
+
+Now do ping from all the namespace (GreenIP:192.168.0.2 RedIP:192.168.0.3 & BridgeIP: 192.168.0.1)
+
+# Setup default gateway 
+sudo ip netns exec green bash
+route # to check default route 
+ip route add default via 192.168.0.1
+route # to check again default route 
+exit
+
+sudo ip netns exec red bash
+route # to check default route 
+ip route add default via 192.168.0.1
+route # to check again default route 
+exit 
+
+# To get internet we need to add a source net in the host machine 
+sudo iptables -t nat -A POSTROUTING -s 192.168.0.0/16 -j MASQUERADE
+
+# To check from the namespace green
+sudo ip netns exec green bash
+ping 192.168.0.1
+ping 192.168.0.2
+ping 192.168.0.3
+ping 8.8.8.8
+exit
+# To check from the namespace red
+sudo ip netns exec red bash
+ping 192.168.0.1
+ping 192.168.0.2
+ping 192.168.0.3
+ping 8.8.8.8
+exit
+
+## All Done ##
+
+
+
+
+
